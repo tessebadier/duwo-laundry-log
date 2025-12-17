@@ -2,6 +2,9 @@
 
 2-evening-long project to log the number of available laundry machines in my building. very basic scraping of the website, and a very basic front end to see the numbers. might add better views if I'm bored again. 
 
+<img width="2549" height="1046" alt="image" src="https://github.com/user-attachments/assets/3daa8a93-6eb4-48c9-998c-f491f4b7048c" />
+
+
 # Requirements
 
 docker installed on the system
