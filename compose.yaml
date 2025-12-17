@@ -1,0 +1,33 @@
+services:
+
+  db:
+    container_name: laundry-db
+    image: mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+    volumes:
+      - ./sqldata:/var/lib/mysql
+      - ./init_db:/docker-entrypoint-init_db.d/
+
+  laundry-request:
+    build: .
+    container_name: laundry-request
+    restart: unless-stopped
+    depends_on:
+      - db
+
+  dashboard:
+    build:
+      context: ./dashboard
+    container_name: laundry-dashboard
+    restart: unless-stopped
+    ports:
+      - "8050:8050"
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=laundry-db
+      - DB_USER=root
+      - DB_PASSWORD=example
+      - DB_NAME=laundry_data
