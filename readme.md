@@ -20,6 +20,8 @@ The init.sql doesn't seem to be running with my current setup, enter the sql con
 
 # other
 
+Python formatted with ruff
+
 The certificate is the chain certificate of the website downloaded from my browswer (firefox) (from 15/12/2025)
 
 `main.py` loops indefinitely to query the number of machines available and stores them. `dashboard.py` is the very half assed front end. 
@@ -32,5 +34,5 @@ type in password 'example'
 use laundry_data;
 select * from scrape limit 10;
 -- average per hour example query
-select hour(CONVERT_TZ(scrape_ts, 'UTC', 'Europe/Amsterdam')) \"hour\", avg(washing) \"washing\", avg(dryer) \"dryer\" from scrape group by hour"
+select hour(CONVERT_TZ(scrape_ts, 'UTC', 'Europe/Amsterdam')) "hour", avg(washing) "washing", avg(dryer) "dryer" from scrape group by hour;
 ```
