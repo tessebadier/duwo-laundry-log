@@ -44,19 +44,19 @@ def run_query(query):
 
 def serve_layout():
     last_washing = last_dryer = 0
-    query = "select washing, dryer from scrape order by scrape.id desc LIMIT 1;"
+    query = "select washing, dryer, TIME_FORMAT(CONVERT_TZ(scrape_ts, 'UTC', 'Europe/Amsterdam'), '%H:%i') \"ts\" from scrape order by scrape.id desc LIMIT 1;"
     frame = run_query(query)
     if frame.empty:
         return html.Div(
             [
                 html.H1("Machine Availability Dashboard"),
                 html.P("Could not connect to database or data is empty."),
-                dcc.Interval(id="interval-component", interval=5000),
             ]
         )
-    else:
-        last_washing = frame.loc[0]["washing"]
-        last_dryer = frame.loc[0]["dryer"]
+
+    last_washing = frame.loc[0]["washing"]
+    last_dryer = frame.loc[0]["dryer"]
+    last_timestamp = frame.loc[0]["ts"]
 
     days = [
         "Monday",
@@ -70,7 +70,7 @@ def serve_layout():
     graphs = []
 
     start_hour = 8
-    end_hour = 23
+    end_hour = 22
     subquery = f"select scrape_ts, washing, dryer, hour(CONVERT_TZ(scrape_ts, 'UTC', 'Europe/Amsterdam')) \"hour\" from scrape having hour >= {start_hour} and hour <= {end_hour}"
     # start the week on Monday: give 7 as parameter to week()
     query = (
@@ -100,7 +100,7 @@ def serve_layout():
         xaxis_showgrid=False,
         yaxis_showgrid=False,
         title=dict(
-            text=f"Average washing machine availability over the day between {start_hour}:00 and {end_hour}:00"
+            text=f"Number of washing machines available over the day between {start_hour}:00 and {end_hour}:00"
         ),
     )
     graphs.append(html.Div(dcc.Graph(figure=fig_washing)))
@@ -125,7 +125,7 @@ def serve_layout():
         xaxis_showgrid=False,
         yaxis_showgrid=False,
         title=dict(
-            text=f"Average dryer availability over the day between {start_hour}:00 and {end_hour}:00"
+            text=f"Number of dryers available over the day between {start_hour}:00 and {end_hour}:00"
         ),
     )
 
@@ -134,7 +134,7 @@ def serve_layout():
     for i, day in enumerate(days):
         query = (
             f"select weekday(CONVERT_TZ(scrape_ts, 'UTC', 'Europe/Amsterdam')) \"day\", hour(CONVERT_TZ(scrape_ts, 'UTC', 'Europe/Amsterdam')) \"hour\", "
-            f'avg(washing) "washing", avg(dryer) "dryer" from scrape group by hour, day having day={i};'
+            f'round(avg(washing), 1) "washing", round(avg(dryer), 1) "dryer" from scrape group by hour, day having day={i};'
         )
         data = run_query(query)
         data_long = pd.melt(
@@ -176,7 +176,7 @@ def serve_layout():
         [
             html.H1("Laundry Room Status Dashboard"),
             html.H3(
-                f"Available: {last_washing} washing machines and {last_dryer} dryers (updates every 10 minutes)"
+                f"Available: {last_washing} washing machines and {last_dryer} dryers at {last_timestamp} (updates every 10 minutes)"
             ),
             *graphs,
         ],
