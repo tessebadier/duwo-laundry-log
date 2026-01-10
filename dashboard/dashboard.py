@@ -6,6 +6,7 @@ import mysql.connector
 import pandas as pd
 import plotly.express as px
 from dash import dcc, html
+from plotly.graph_objects import Figure, Heatmap
 
 DB_HOST = os.environ.get("DB_HOST", "db")
 DB_USER = os.environ.get("DB_USER", "myuser")
@@ -67,8 +68,74 @@ def serve_layout():
         "Sunday",
     ]
     graphs = []
+
+    start_hour = 8
+    end_hour = 23
+    subquery = f"select scrape_ts, washing, dryer, hour(CONVERT_TZ(scrape_ts, 'UTC', 'Europe/Amsterdam')) \"hour\" from scrape having hour >= {start_hour} and hour <= {end_hour}"
+    # start the week on Monday: give 7 as parameter to week()
+    query = (
+        f"select day(CONVERT_TZ(scrape_ts, 'UTC', 'Europe/Amsterdam')) \"day\", week(CONVERT_TZ(scrape_ts, 'UTC', 'Europe/Amsterdam'), 7) \"week\", "
+        'weekday(CONVERT_TZ(scrape_ts, \'UTC\', \'Europe/Amsterdam\')) "weekday", avg(washing) "washing", avg(dryer) "dryer"'
+        f"from ({subquery}) s group by week, day, weekday;"
+    )
+    data = run_query(query)
+
+    ar_washing = [[None for j in range(0, 52)] for i in range(0, 8)]
+    for i in range(data.shape[0]):
+        ar_washing[data.iloc[i]["weekday"]][
+            (data.iloc[i]["week"] if data.iloc[i]["week"] <= 51 else 0)
+        ] = round(data.iloc[i]["washing"], 1)
+    fig_washing = Figure(
+        data=Heatmap(
+            z=ar_washing,
+            x=[f"Week {i}" for i in range(1, 53)],
+            y=days,
+            colorscale="Viridis",
+            zmid=4,
+            hoverongaps=False,
+            showscale=False,
+        ),
+    )
+    fig_washing.update_layout(
+        xaxis_showgrid=False,
+        yaxis_showgrid=False,
+        title=dict(
+            text=f"Average washing machine availability over the day between {start_hour}:00 and {end_hour}:00"
+        ),
+    )
+    graphs.append(html.Div(dcc.Graph(figure=fig_washing)))
+
+    ar_dryer = [[None for j in range(0, 52)] for i in range(0, 8)]
+    for i in range(data.shape[0]):
+        ar_dryer[data.iloc[i]["weekday"]][
+            (data.iloc[i]["week"] if data.iloc[i]["week"] <= 51 else 0)
+        ] = round(data.iloc[i]["dryer"], 1)
+    fig_dryer = Figure(
+        data=Heatmap(
+            z=ar_dryer,
+            x=[f"Week {i}" for i in range(1, 53)],
+            y=days,
+            colorscale="Viridis",
+            zmid=3.5,
+            hoverongaps=False,
+            showscale=False,
+        ),
+    )
+    fig_dryer.update_layout(
+        xaxis_showgrid=False,
+        yaxis_showgrid=False,
+        title=dict(
+            text=f"Average dryer availability over the day between {start_hour}:00 and {end_hour}:00"
+        ),
+    )
+
+    graphs.append(html.Div(dcc.Graph(figure=fig_dryer)))
+
     for i, day in enumerate(days):
-        query = f"select weekday(CONVERT_TZ(scrape_ts, 'UTC', 'Europe/Amsterdam')) \"day\", hour(CONVERT_TZ(scrape_ts, 'UTC', 'Europe/Amsterdam')) \"hour\", avg(washing) \"washing\", avg(dryer) \"dryer\" from scrape group by hour, day having day={i};"
+        query = (
+            f"select weekday(CONVERT_TZ(scrape_ts, 'UTC', 'Europe/Amsterdam')) \"day\", hour(CONVERT_TZ(scrape_ts, 'UTC', 'Europe/Amsterdam')) \"hour\", "
+            f'avg(washing) "washing", avg(dryer) "dryer" from scrape group by hour, day having day={i};'
+        )
         data = run_query(query)
         data_long = pd.melt(
             data,
