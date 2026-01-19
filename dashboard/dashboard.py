@@ -90,10 +90,9 @@ def serve_layout():
             z=ar_washing,
             x=[f"Week {i}" for i in range(1, 53)],
             y=days,
-            colorscale="Viridis",
+            colorscale="Reds_r",
             zmid=4,
             hoverongaps=False,
-            showscale=False,
         ),
     )
     fig_washing.update_layout(
@@ -115,10 +114,9 @@ def serve_layout():
             z=ar_dryer,
             x=[f"Week {i}" for i in range(1, 53)],
             y=days,
-            colorscale="Viridis",
+            colorscale="Reds_r",
             zmid=3.5,
             hoverongaps=False,
-            showscale=False,
         ),
     )
     fig_dryer.update_layout(
